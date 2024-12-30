@@ -1,37 +1,50 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
+require('dotenv').config();
 
-const client = new Client({ 
-    intents: [
-        GatewayIntentBits.Guilds, 
-        GatewayIntentBits.GuildMessages, 
-        GatewayIntentBits.MessageContent // Đảm bảo intent này đã được bật trong Developer Portal
-    ] 
-});
-
-const BATTLE_API_URL = 'https://gameinfo.albiononline.com/api/gameinfo/battles';
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 client.once('ready', () => {
-    console.log('Bot đã sẵn sàng!');
+    console.log(`Logged in as ${client.user.tag}!`);
 });
 
+async function fetchBattleData() {
+    try {
+        const response = await axios.get('https://api-east.albionbattles.com/battles?plyAmount=0&offset=0&search=');
+        console.log('API Response:', response.data); // Log the response to inspect it
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching battle data:', error);
+        return null;
+    }
+}
+
 client.on('messageCreate', async (message) => {
-    if (message.content === '!battles') {
-        try {
-            const response = await axios.get(`${BATTLE_API_URL}?range=week&limit=10`);
-            const battles = response.data;
+    if (message.content === '!battle') {
+        const battleData = await fetchBattleData();
+        if (battleData && Array.isArray(battleData.docs)) {
+            const filteredBattles = battleData.docs.filter(battle => battle.players.list.length === 10);
 
-            let battleInfo = 'Thông tin trận đấu:\n';
-            battles.forEach(battle => {
-                battleInfo += `- Trận đấu ID: ${battle.id}, Tổng Fame: ${battle.totalFame}, Tổng Kills: ${battle.totalKills}\n`;
-            });
+            if (filteredBattles.length > 0) {
+                // Create a message for each filtered battle
+                const battleMessages = filteredBattles.map((battle, index) => {
+                    return `Battle ${index + 1}:
+                    ID: ${battle.id}
+                    Start Time: ${new Date(battle.startTime).toLocaleString()}
+                    End Time: ${new Date(battle.endTime).toLocaleString()}
+                    Total Fame: ${battle.totalFame}
+                    Total Kills: ${battle.totalKills}
+                    Players: ${battle.players.list.join(', ')}
+                    Alliances: ${battle.alliances.list.join(', ')}`;
+                }).join('\n\n');
 
-            message.channel.send(battleInfo);
-        } catch (error) {
-            console.error(error);
-            message.channel.send('Đã xảy ra lỗi khi lấy thông tin trận đấu.');
+                message.channel.send(`Here are the battles with 10 players:\n${battleMessages}`);
+            } else {
+                message.channel.send('No battles with exactly 10 players found.');
+            }
+        } else {
+            message.channel.send('Unexpected response format from API.');
         }
     }
 });
-
 client.login('MTMxMzgyMDM0NzYyNzQ3NTAxNQ.GQU4lT.z0Bt04x85Me09uMNqo4sung4DCIvfi2P0zVcQk');
