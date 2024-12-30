@@ -24,10 +24,17 @@ client.once('ready', () => {
 async function fetchBattleData() {
     try {
         const response = await axios.get('https://api-east.albionbattles.com/battles?plyAmount=0&offset=0&search=');
-        return response.data;
+        const battleList = response.data.docs;
+
+        // Lọc các trận có đúng 10 người chơi
+        const filteredBattles = battleList.filter(battle =>
+            Array.isArray(battle.players?.list) && battle.players.list.length === 10
+        );
+
+        return filteredBattles;
     } catch (error) {
         console.error('❌ Lỗi khi gọi API danh sách trận chiến:', error.message);
-        return null;
+        return [];
     }
 }
 
@@ -44,52 +51,52 @@ async function fetchBattleDetails(battleId) {
 
 // Hàm gửi thông tin trận chiến tới kênh Discord
 async function sendBattleUpdates() {
-    const battleData = await fetchBattleData();
+    const battles = await fetchBattleData();
 
-    if (battleData && Array.isArray(battleData.docs)) {
-        const filteredBattles = battleData.docs.filter(battle =>
-            Array.isArray(battle.players?.list) && battle.players.list.length === 10
-        );
-
-        if (filteredBattles.length > 0) {
-            const battleMessages = await Promise.all(filteredBattles.map(async (battle, index) => {
-                const battleDetails = await fetchBattleDetails(battle.id);
-                if (!battleDetails || !Array.isArray(battleDetails.kills)) return '';
-
-                // Xử lý danh sách chi tiết các pha tiêu diệt
-                const killDetails = battleDetails.kills.map((kill, idx) => {
-                    const killerName = kill.Killer?.Name || 'Không rõ';
-                    const victimName = kill.Victim?.Name || 'Không rõ';
-                    const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'Không rõ';
-
-                    return `🔪 **Kill ${idx + 1}**: ${killerName} (vũ khí: ${killerWeapon}) ➡️ ${victimName}`;
-                }).join('\n');
-
-                return `**Trận chiến ${index + 1}**
-                - 🆔 ID: ${battle.id}
-                - 🕒 Thời gian bắt đầu: ${new Date(battle.startTime).toLocaleString()}
-                - ⚔️ Tổng số kills: ${battle.totalKills}
-                - 👥 Người chơi: ${battle.players.list.join(', ')}
-                - 🩸 Chi tiết kills:\n${killDetails}`;
-            }));
-
-            const channel = client.channels.cache.get(CHANNEL_ID);
-            if (channel) {
-                channel.send(`🔍 **Danh sách các trận chiến có 10 người chơi:**\n${battleMessages.filter(Boolean).join('\n\n')}`);
-            } else {
-                console.error('❌ Không tìm thấy kênh với ID:', CHANNEL_ID);
-            }
-        } else {
-            console.log('⚠️ Không có trận chiến nào có đúng 10 người chơi.');
+    if (battles.length === 0) {
+        const channel = client.channels.cache.get(CHANNEL_ID);
+        if (channel) {
+            channel.send('⚠️ Hiện tại không có trận chiến nào có tổng số lượng người chơi là 10.');
         }
-    } else {
-        console.log('❌ Dữ liệu trả về từ API không đúng định dạng.');
+        console.log('⚠️ Không có trận chiến nào có tổng số lượng người chơi là 10.');
+        return;
+    }
+
+    const channel = client.channels.cache.get(CHANNEL_ID);
+    if (!channel) {
+        console.error('❌ Không tìm thấy kênh với ID:', CHANNEL_ID);
+        return;
+    }
+
+    for (const battle of battles) {
+        const details = await fetchBattleDetails(battle.id);
+        if (!details) continue;
+
+        // Xử lý chi tiết các pha tiêu diệt
+        const killDetails = details.kills.slice(0, 5).map((kill, idx) => {
+            const killerName = kill.Killer?.Name || 'Không rõ';
+            const victimName = kill.Victim?.Name || 'Không rõ';
+            const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'Không rõ';
+            const VictimWeapon = kill.Victim?.Equipment?.MainHand?.Type || 'Không rõ';
+            return `🔪 **Kill ${idx + 1}**: ${killerName} (vũ khí: ${killerWeapon}) ➡️ ${victimName} (vũ khí: ${VictimWeapon})`;
+            
+        }).join('\n');
+
+        // Gửi thông tin lên Discord
+        const message = `**Trận chiến**
+        🆔 **ID**: ${battle.id}
+        🕒 **Thời gian bắt đầu**: ${new Date(battle.startTime).toLocaleString()}
+        ⚔️ **Tổng kills**: ${battle.totalKills}
+        👥 **Người chơi**: ${battle.players.list.join(', ')}
+        🩸 **Chi tiết kills**:\n${killDetails || 'Không có kills.'}`;
+
+        channel.send(message);
     }
 }
 
 // Lập lịch gửi cập nhật trận chiến mỗi 3 phút
 function scheduleBattleUpdates() {
-    setInterval(sendBattleUpdates, 60000); // 3 phút
+    setInterval(sendBattleUpdates, 180000); // 3 phút
 }
 
 // Đăng nhập bot
