@@ -14,6 +14,9 @@ const client = new Client({
     ]
 });
 
+// Mảng để lưu trữ các battle.id đã được gửi
+const sentBattles = new Set();
+
 // Khi bot sẵn sàng
 client.once('ready', () => {
     console.log(`✅ Bot đã đăng nhập thành công với tên: ${client.user.tag}!`);
@@ -69,17 +72,26 @@ async function sendBattleUpdates() {
     }
 
     for (const battle of battles) {
+        // Kiểm tra nếu trận chiến đã được gửi trước đó
+        if (sentBattles.has(battle.id)) {
+            continue;
+        }
+
         const details = await fetchBattleDetails(battle.id);
         if (!details) continue;
+
+        // Chỉ hiển thị nếu tổng kills >= 5
+        if (battle.totalKills < 5) {
+            continue;
+        }
 
         // Xử lý chi tiết các pha tiêu diệt
         const killDetails = details.kills.slice(0, 5).map((kill, idx) => {
             const killerName = kill.Killer?.Name || 'Không rõ';
             const victimName = kill.Victim?.Name || 'Không rõ';
             const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'Không rõ';
-            const VictimWeapon = kill.Victim?.Equipment?.MainHand?.Type || 'Không rõ';
-            return `🔪 **Kill ${idx + 1}**: ${killerName} (vũ khí: ${killerWeapon}) ➡️ ${victimName} (vũ khí: ${VictimWeapon})`;
-            
+            const victimWeapon = kill.Victim?.Equipment?.MainHand?.Type || 'Không rõ';
+            return `🔪 **Kill ${idx + 1}**: ${killerName} (vũ khí: ${killerWeapon}) ➡️ ${victimName} (vũ khí: ${victimWeapon})`;
         }).join('\n');
 
         // Gửi thông tin lên Discord
@@ -91,6 +103,9 @@ async function sendBattleUpdates() {
         🩸 **Chi tiết kills**:\n${killDetails || 'Không có kills.'}`;
 
         channel.send(message);
+
+        // Lưu battle.id vào bộ nhớ để tránh lặp lại
+        sentBattles.add(battle.id);
     }
 }
 
