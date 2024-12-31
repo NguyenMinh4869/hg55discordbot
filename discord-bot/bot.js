@@ -23,6 +23,7 @@ client.once('ready', () => {
     scheduleBattleUpdates();
 });
 
+
 // Hàm lấy danh sách trận chiến từ API
 async function fetchBattleData() {
     try {
@@ -86,7 +87,7 @@ async function sendBattleUpdates() {
         }
 
         // Xử lý chi tiết các pha tiêu diệt
-        const killDetails = details.kills.slice(0, 5).map((kill, idx) => {
+        const killDetails = details.kills.slice(0, 10).map((kill, idx) => {
             const killerName = kill.Killer?.Name || 'Không rõ';
             const victimName = kill.Victim?.Name || 'Không rõ';
             const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'Không rõ';
