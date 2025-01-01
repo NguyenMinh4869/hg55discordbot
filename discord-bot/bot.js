@@ -19,7 +19,7 @@ const sentBattles = new Set();
 
 // Khi bot sẵn sàng
 client.once('ready', () => {
-    console.log(`✅ Bot đã đăng nhập thành công với tên: ${client.user.tag}!`);
+    console.log(`✅ Created By:marconguyen/Bot has successfully logged in with the name: ${client.user.tag}!`);
     scheduleBattleUpdates();
 });
 
@@ -37,7 +37,7 @@ async function fetchBattleData() {
 
         return filteredBattles;
     } catch (error) {
-        console.error('❌ Lỗi khi gọi API danh sách trận chiến:', error.message);
+        console.error('❌ Error calling the battle list API:', error.message);
         return [];
     }
 }
@@ -48,7 +48,7 @@ async function fetchBattleDetails(battleId) {
         const response = await axios.get(`https://api-east.albionbattles.com/battles/${battleId}`);
         return response.data;
     } catch (error) {
-        console.error(`❌ Lỗi khi gọi API chi tiết trận chiến với ID ${battleId}:`, error.message);
+        console.error(`❌ Error calling battle details API with ID ${battleId}:`, error.message);
         return null;
     }
 }
@@ -60,15 +60,15 @@ async function sendBattleUpdates() {
     if (battles.length === 0) {
         const channel = client.channels.cache.get(CHANNEL_ID);
         if (channel) {
-            channel.send('⚠️ Hiện tại không có trận chiến nào có tổng số lượng người chơi là 10.');
+            channel.send('⚠️ Created By:marconguyen/There are currently no battles with a total player count of 10.');
         }
-        console.log('⚠️ Không có trận chiến nào có tổng số lượng người chơi là 10.');
+        console.log('⚠️Created By:marconguyen/ There are no battles with a total number of players of 10.');
         return;
     }
 
     const channel = client.channels.cache.get(CHANNEL_ID);
     if (!channel) {
-        console.error('❌ Không tìm thấy kênh với ID:', CHANNEL_ID);
+        console.error('❌ No channel found with ID:', CHANNEL_ID);
         return;
     }
 
@@ -88,20 +88,20 @@ async function sendBattleUpdates() {
 
         // Xử lý chi tiết các pha tiêu diệt
         const killDetails = details.kills.slice(0, 10).map((kill, idx) => {
-            const killerName = kill.Killer?.Name || 'Không rõ';
-            const victimName = kill.Victim?.Name || 'Không rõ';
-            const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'Không rõ';
-            const victimWeapon = kill.Victim?.Equipment?.MainHand?.Type || 'Không rõ';
-            return `🔪 **Kill ${idx + 1}**: ${killerName} (vũ khí: ${killerWeapon}) ➡️ ${victimName} (vũ khí: ${victimWeapon})`;
+            const killerName = kill.Killer?.Name || 'unknown';
+            const victimName = kill.Victim?.Name || 'unknown';
+            const killerWeapon = kill.Killer?.Equipment?.MainHand?.Type || 'unknown';
+            const victimWeapon = kill.Victim?.Equipment?.MainHand?.Type || 'unknown';
+            return `🔪: ${killerName} (WEAPON: :${killerWeapon}:) ⚔️ ${victimName} (WEAPON: :${victimWeapon}:)`;
         }).join('\n');
 
         // Gửi thông tin lên Discord
-        const message = `**Trận chiến**
-        🆔 **ID**: ${battle.id}
-        🕒 **Thời gian bắt đầu**: ${new Date(battle.startTime).toLocaleString()}
-        ⚔️ **Tổng kills**: ${battle.totalKills}
-        👥 **Người chơi**: ${battle.players.list.join(', ')}
-        🩸 **Chi tiết kills**:\n${killDetails || 'Không có kills.'}`;
+        const message = `**HellGate 5vs5 Battle Log Created By:marconguyen**
+        🆔 **Link**: https://east.albionbattles.com/battles/${battle.id}
+        🕒 **Time (UTC)**: ${new Date(battle.startTime).toLocaleString()}
+        ⚔️ **Total kills**: ${battle.totalKills}
+        👥 **Player**: ${battle.players.list.join(', ')}
+        🩸 **Detail**:\n${killDetails || 'no kills.'}`;
 
         channel.send(message);
 
