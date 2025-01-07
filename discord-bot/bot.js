@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
-
+const keepAlive = require('./server');
 // Token và ID kênh Discord
 const BOT_TOKEN = 'MTMxMzgyMDM0NzYyNzQ3NTAxNQ.GQU4lT.z0Bt04x85Me09uMNqo4sung4DCIvfi2P0zVcQk';
 const CHANNEL_ID = '1323245373971763310';
@@ -115,5 +115,6 @@ function scheduleBattleUpdates() {
     setInterval(sendBattleUpdates, 180000); // 3 phút
 }
 
+keepAlive();
 // Đăng nhập bot
 client.login(BOT_TOKEN);
