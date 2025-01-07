@@ -1,9 +1,8 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
+require('dotenv').config();
 const keepAlive = require('./server');
-// Token và ID kênh Discord
-const BOT_TOKEN = 'MTMxMzgyMDM0NzYyNzQ3NTAxNQ.GQU4lT.z0Bt04x85Me09uMNqo4sung4DCIvfi2P0zVcQk';
-const CHANNEL_ID = '1323245373971763310';
+
 
 // Tạo client Discord với quyền hạn cần thiết
 const client = new Client({
@@ -58,7 +57,7 @@ async function sendBattleUpdates() {
     const battles = await fetchBattleData();
 
     if (battles.length === 0) {
-        const channel = client.channels.cache.get(CHANNEL_ID);
+        const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL_ID);
         if (channel) {
             channel.send('⚠️ Created By:marconguyen/There are currently no battles with a total player count of 10.');
         }
@@ -66,9 +65,9 @@ async function sendBattleUpdates() {
         return;
     }
 
-    const channel = client.channels.cache.get(CHANNEL_ID);
+    const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL_ID);
     if (!channel) {
-        console.error('❌ No channel found with ID:', CHANNEL_ID);
+        console.error('❌ No channel found with ID:', process.env.DISCORD_CHANNEL_ID);
         return;
     }
 
@@ -117,4 +116,4 @@ function scheduleBattleUpdates() {
 
 keepAlive();
 // Đăng nhập bot
-client.login(BOT_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
